@@ -45,4 +45,3 @@ lerna-debug.log*
 *.njsproj
 *.sln
 *.sw?
-client_secret_*.json
