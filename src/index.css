@@ -1,0 +1,57 @@
+@import 'tailwindcss';
+
+@theme {
+  --animate-email-arrival: email-arrival 2.8s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+
+  @keyframes email-arrival {
+    0%, 14% {
+      opacity: 0;
+      transform: translateY(-0.5rem) scale(0.96);
+    }
+
+    35%, 62% {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+
+    84%, 100% {
+      opacity: 0;
+      transform: translateY(0.6rem) scale(0.96);
+    }
+  }
+}
+
+:root {
+  font-family: 'DM Sans', 'Segoe UI', sans-serif;
+  line-height: 1.5;
+  font-weight: 400;
+  color: #17202a;
+  background: #f7f8f5;
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  background: #f7f8f5;
+}
+
+body {
+  margin: 0;
+  min-width: 320px;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+h1,
+p {
+  margin: 0;
+}
