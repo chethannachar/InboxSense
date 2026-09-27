@@ -2,9 +2,9 @@ import os
 import sys
 import unittest
 
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(__file__))))
+sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 
-from backend.database import build_database_url
+from app.database import build_database_url
 
 
 class DatabaseConfigTests(unittest.TestCase):

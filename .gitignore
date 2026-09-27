@@ -1,11 +1,33 @@
 .env
-.venv
-**pycache
-node_modules
-dist
+.env.*
+!.env.example
+!**/.env.example
+**/.env
+**/.env.*
+!**/.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.venv/
+venv/
+
+# JavaScript build/dependencies
+node_modules/
+dist/
+build/
+.vercel/
+
+# Local credentials and keys
+credentials.json
+client_secret_*.json
+token.json
+*.pem
 
 # Logs
-logs
+logs/
 *.log
 npm-debug.log*
 yarn-debug.log*
@@ -16,13 +38,11 @@ lerna-debug.log*
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
 *.njsproj
 *.sln
 *.sw?
-
-# Google OAuth credentials
 client_secret_*.json

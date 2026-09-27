@@ -1,7 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import DOMPurify from 'dompurify'
+import AuthScreen from './AuthScreen.jsx'
 
-const API_BASE_URL = 'http://localhost:8000'
+const API_BASE_URL = import.meta.env.VITE_API_URL?.replace(/\/+$/, '')
+
+if (!API_BASE_URL) {
+  throw new Error('VITE_API_URL must be set to the backend API origin')
+}
 
 const CATEGORY_FILTERS = [
   'ACTION_REQUIRED',
@@ -299,6 +304,19 @@ function App() {
     })
 
     return counts
+  }, [emails])
+  const recipientSuggestions = useMemo(() => {
+    const suggestions = new Map()
+
+    emails.forEach((email) => {
+      const sender = String(email.sender || '')
+      const address = sender.match(/<([^<>]+@[^<>]+)>/)?.[1] || sender.match(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/)?.[0]
+      if (address && !suggestions.has(address.toLowerCase())) {
+        suggestions.set(address.toLowerCase(), email.sender_name || address)
+      }
+    })
+
+    return Array.from(suggestions, ([address, name]) => ({ address, name }))
   }, [emails])
   const visibleEmails = useMemo(() => {
     const query = searchQuery.trim().toLocaleLowerCase()
@@ -604,21 +622,7 @@ function App() {
   }
 
   if (!user) {
-    return (
-      <main className="grid min-h-svh place-items-center bg-[#f6f5f0] px-4 py-6 text-[#202825] sm:px-6">
-        <section className="w-full max-w-[27rem] rounded-xl border border-[#deddd7] bg-[#fffefa] px-5 py-7 shadow-[0_14px_32px_rgba(40,47,43,0.07)] sm:px-8 sm:py-9" aria-labelledby="auth-title">
-          <div className="flex flex-col items-center text-center">
-            <span className="grid h-11 w-11 place-items-center rounded-[8px] bg-[#176b61] text-[0.78rem] font-extrabold tracking-[0.02em] text-white">IS</span>
-            <p className="mt-3 text-[0.95rem] font-semibold tracking-[-0.01em] text-[#26332e]">InboxSense</p>
-            <h1 id="auth-title" className="mt-8 text-[clamp(1.8rem,7vw,2.35rem)] font-medium leading-[1.12] tracking-[-0.035em] text-[#202825]">Your inbox, understood.</h1>
-            <p className="mt-3 max-w-[22rem] text-[0.9rem] leading-[1.55] text-[#707a75]">Connect your Gmail account to discover what your emails require from you.</p>
-          </div>
-          {errorMessage && <p className="mt-5 rounded-md border border-[#f0d4cd] bg-[#fff3ef] p-3 text-left text-sm text-[#9a4d3d]" role="alert">{errorMessage}</p>}
-          {logoutError && <p className="mt-3 rounded-md border border-[#f0d4cd] bg-[#fff3ef] p-3 text-left text-sm text-[#9a4d3d]" role="alert">{logoutError}</p>}
-          <button type="button" className="mt-7 flex min-h-12 w-full items-center justify-center gap-3 rounded-lg border border-[#c9c9c2] bg-[#176b61] px-4 py-3 text-[0.88rem] font-semibold text-white shadow-[0_5px_13px_rgba(23,107,97,0.14)] transition-colors hover:bg-[#0f806f] active:bg-[#0b574f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61] disabled:cursor-wait disabled:opacity-65" onClick={handleGoogleLogin}><GoogleLogo /> Continue with Google</button>
-        </section>
-      </main>
-    )
+    return <AuthScreen onGoogleLogin={handleGoogleLogin} errorMessage={errorMessage} logoutError={logoutError} categories={CATEGORY_FILTERS} categoryLabels={CATEGORY_LABELS} categoryStyles={CATEGORY_STYLES} />
   }
 
   return (
@@ -680,9 +684,9 @@ function App() {
         )}
 
         {replyEmail && (
-          <div className="fixed inset-0 z-20 grid place-items-center bg-[rgba(28,38,34,0.38)] p-5 max-[560px]:items-stretch max-[560px]:p-0" role="presentation">
+          <div className="fixed inset-0 z-50 grid place-items-center bg-[rgba(20,35,30,0.58)] p-5 backdrop-blur-[3px] max-[767px]:items-stretch max-[767px]:p-0" role="presentation">
             <section
-              className={`max-h-[min(760px,calc(100vh-2rem))] w-full max-w-[680px] overflow-y-auto rounded-xl border border-[#d8d7d0] bg-[#fffefa] p-5 text-[#202825] shadow-[0_18px_45px_rgba(24,35,30,0.2)] max-[560px]:h-dvh max-[560px]:max-h-dvh max-[560px]:min-h-dvh max-[560px]:rounded-none max-[560px]:border-0 max-[560px]:p-4 ${isDraggingAttachment ? 'border-[#176b61] shadow-[0_0_0_3px_#d8ebe6,0_18px_45px_rgba(24,35,30,0.2)]' : ''}`}
+              className={`flex h-[min(790px,calc(100dvh-2.5rem))] min-h-0 w-full max-w-[720px] flex-col overflow-hidden rounded-xl border border-[#d8e4dd] bg-[#fffefa] text-[#202825] shadow-[0_24px_70px_rgba(17,39,31,0.3)] max-[767px]:h-dvh max-[767px]:max-h-dvh max-[767px]:max-w-none max-[767px]:rounded-none max-[767px]:border-0 ${isDraggingAttachment ? 'ring-4 ring-[#7db4a4]/50' : ''}`}
               role="dialog"
               aria-modal="true"
               aria-labelledby="reply-title"
@@ -693,45 +697,43 @@ function App() {
               onDragLeave={() => setIsDraggingAttachment(false)}
               onDrop={handleAttachmentDrop}
             >
-              <div className="flex items-start justify-between gap-4 border-b border-[#deddd7] pb-[0.9rem]">
-                <div>
-                  <p className="mb-[0.35rem] text-[0.64rem] text-[#176b61]">Reply in thread</p>
-                  <h3 id="reply-title" className="text-base font-semibold leading-[1.35] text-[#202825]">{replyEmail.subject || '(No subject)'}</h3>
+              <div className="flex shrink-0 items-center gap-3 bg-[#163f38] px-5 py-3.5 text-[#f7f7ee] max-[767px]:px-4 max-[767px]:py-3">
+                <span className="grid h-9 w-9 shrink-0 place-items-center rounded-[7px] bg-[#e2efe8] text-[0.64rem] font-extrabold text-[#176b61]" aria-hidden="true">IS</span>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[0.62rem] font-semibold text-[#bed3ca]">REPLY IN THREAD</p>
+                  <h3 id="reply-title" className="mt-0.5 truncate text-[0.9rem] font-semibold leading-[1.35]">{replyEmail.subject || '(No subject)'}</h3>
                 </div>
-                <button type="button" className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-[#deddd7] bg-[#fffefa] text-xl leading-none text-[#68736d] transition-colors hover:border-[#73a79b] hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:cursor-wait disabled:opacity-60" onClick={requestCloseComposer} disabled={sendingReply} aria-label="Close reply composer">
-                  ×
+                <button type="button" className="grid h-10 w-10 shrink-0 place-items-center rounded-[7px] border border-white/20 bg-white/10 text-[1.4rem] leading-none text-white transition-colors hover:bg-white/20 active:bg-white/25 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#f2b66d] disabled:cursor-wait disabled:opacity-60" onClick={requestCloseComposer} disabled={sendingReply} aria-label="Close reply composer" title="Close reply composer">
+                  <span aria-hidden="true">×</span>
                 </button>
               </div>
 
-              {replyError && <div className="mt-3 rounded-md border border-[#f0d4cd] bg-[#fff3ef] p-3 text-sm text-[#9a4d3d]">{replyError}</div>}
-
-              <form onSubmit={handleSendReply}>
-                <div className="mt-3 grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-[0.65rem] max-[560px]:grid-cols-[3.6rem_minmax(0,1fr)]">
-                  <label className="text-xs font-semibold text-[#68736d]" htmlFor="reply-to">To</label>
-                  <input className="w-full min-w-0 rounded-md border border-[#d8d7d0] bg-white px-[0.65rem] py-[0.58rem] text-[0.78rem] text-[#202825] focus:border-[#73a79b] focus:outline-2 focus:outline-offset-1 focus:outline-[rgba(23,107,97,0.16)]" id="reply-to" type="text" value={replyTo} onChange={(event) => setReplyTo(event.target.value)} disabled={sendingReply} aria-required="true" placeholder="recipient@example.com" />
-                  <button type="button" className={`whitespace-nowrap rounded-md bg-transparent px-2 py-1 text-[0.7rem] font-semibold text-[#176b61] transition-colors hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60 max-[560px]:col-start-2 max-[560px]:justify-self-start ${showCcBcc ? 'bg-[#c8e4da] text-[#174f47]' : ''}`} onClick={() => setShowCcBcc((visible) => !visible)} disabled={sendingReply}>
-                    {showCcBcc ? 'Hide Cc/Bcc' : 'Cc / Bcc'}
-                  </button>
-                </div>
-                {showCcBcc && (
-                  <div className="mb-0 ml-[4.5rem] border-l-2 border-[#d8ebe6] pl-[0.65rem] max-[560px]:ml-[3.6rem]">
-                    <div className="mt-3 grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-[0.65rem] max-[560px]:grid-cols-[3.6rem_minmax(0,1fr)]">
-                      <label className="text-xs font-semibold text-[#68736d]" htmlFor="reply-cc">Cc</label>
-                      <input className="w-full min-w-0 rounded-md border border-[#d8d7d0] bg-white px-[0.65rem] py-[0.58rem] text-[0.78rem] text-[#202825] focus:border-[#73a79b] focus:outline-2 focus:outline-offset-1 focus:outline-[rgba(23,107,97,0.16)]" id="reply-cc" type="text" value={replyCc} onChange={(event) => setReplyCc(event.target.value)} disabled={sendingReply} placeholder="Optional recipients" />
-                    </div>
-                    <div className="mt-3 grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-[0.65rem] max-[560px]:grid-cols-[3.6rem_minmax(0,1fr)]">
-                      <label className="text-xs font-semibold text-[#68736d]" htmlFor="reply-bcc">Bcc</label>
-                      <input className="w-full min-w-0 rounded-md border border-[#d8d7d0] bg-white px-[0.65rem] py-[0.58rem] text-[0.78rem] text-[#202825] focus:border-[#73a79b] focus:outline-2 focus:outline-offset-1 focus:outline-[rgba(23,107,97,0.16)]" id="reply-bcc" type="text" value={replyBcc} onChange={(event) => setReplyBcc(event.target.value)} disabled={sendingReply} placeholder="Optional recipients" />
-                    </div>
+              <form className="flex min-h-0 flex-1 flex-col overflow-hidden" onSubmit={handleSendReply}>
+                <div className={`shrink-0 px-5 pt-4 max-[767px]:px-4 max-[767px]:pt-3 ${replyAttachments.length > 0 ? 'pb-2' : 'pb-3'}`}>
+                  <datalist id="reply-recipient-suggestions">
+                    {recipientSuggestions.map(({ address, name }) => <option value={address} label={name} key={address} />)}
+                  </datalist>
+                  <div className="grid grid-cols-[2.6rem_minmax(0,1fr)_auto] items-center gap-x-3 gap-y-2 max-[420px]:grid-cols-[2.4rem_minmax(0,1fr)]">
+                    <label className="text-[0.72rem] font-semibold text-[#68736d]" htmlFor="reply-to">To</label>
+                    <input className="w-full min-w-0 rounded-[6px] border border-[#d5dfd9] bg-[#fcfdfb] px-3 py-2.5 text-[0.8rem] text-[#202825] focus:border-[#176b61] focus:outline-2 focus:outline-offset-1 focus:outline-[#176b61]/20" id="reply-to" type="text" list="reply-recipient-suggestions" autoComplete="off" value={replyTo} onChange={(event) => setReplyTo(event.target.value)} disabled={sendingReply} aria-required="true" placeholder="Recipient email" />
+                    <button type="button" className={`min-h-9 whitespace-nowrap rounded-[6px] px-2.5 text-[0.7rem] font-semibold transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61] disabled:opacity-60 max-[420px]:col-start-2 max-[420px]:justify-self-start ${showCcBcc ? 'bg-[#dcebe4] text-[#174f47]' : 'bg-transparent text-[#176b61] hover:bg-[#e7f1ed]'}`} onClick={() => setShowCcBcc((visible) => !visible)} disabled={sendingReply}>
+                      {showCcBcc ? 'Hide Cc/Bcc' : 'Cc / Bcc'}
+                    </button>
+                    {showCcBcc && <>
+                      <label className="text-[0.72rem] font-semibold text-[#68736d]" htmlFor="reply-cc">Cc</label>
+                      <input className="w-full min-w-0 rounded-[6px] border border-[#d5dfd9] bg-[#fcfdfb] px-3 py-2 text-[0.78rem] text-[#202825] focus:border-[#176b61] focus:outline-2 focus:outline-offset-1 focus:outline-[#176b61]/20" id="reply-cc" type="text" list="reply-recipient-suggestions" autoComplete="off" value={replyCc} onChange={(event) => setReplyCc(event.target.value)} disabled={sendingReply} placeholder="Add Cc recipients" />
+                      <span />
+                      <label className="text-[0.72rem] font-semibold text-[#68736d]" htmlFor="reply-bcc">Bcc</label>
+                      <input className="w-full min-w-0 rounded-[6px] border border-[#d5dfd9] bg-[#fcfdfb] px-3 py-2 text-[0.78rem] text-[#202825] focus:border-[#176b61] focus:outline-2 focus:outline-offset-1 focus:outline-[#176b61]/20" id="reply-bcc" type="text" list="reply-recipient-suggestions" autoComplete="off" value={replyBcc} onChange={(event) => setReplyBcc(event.target.value)} disabled={sendingReply} placeholder="Add Bcc recipients" />
+                      <span />
+                    </>}
+                    <label className="text-[0.72rem] font-semibold text-[#68736d]" htmlFor="reply-subject">Subject</label>
+                    <input className="col-span-2 w-full min-w-0 rounded-[6px] border border-[#d5dfd9] bg-[#fcfdfb] px-3 py-2 text-[0.78rem] text-[#202825] focus:border-[#176b61] focus:outline-2 focus:outline-offset-1 focus:outline-[#176b61]/20 max-[420px]:col-span-1" id="reply-subject" type="text" value={replySubject} onChange={(event) => setReplySubject(event.target.value)} disabled={sendingReply} />
                   </div>
-                )}
-                <div className="mt-3 grid grid-cols-[4.5rem_minmax(0,1fr)_auto] items-center gap-[0.65rem] max-[560px]:grid-cols-[3.6rem_minmax(0,1fr)]">
-                  <label className="text-xs font-semibold text-[#68736d]" htmlFor="reply-subject">Subject</label>
-                  <input className="w-full min-w-0 rounded-md border border-[#d8d7d0] bg-white px-[0.65rem] py-[0.58rem] text-[0.78rem] text-[#202825] focus:border-[#73a79b] focus:outline-2 focus:outline-offset-1 focus:outline-[rgba(23,107,97,0.16)]" id="reply-subject" type="text" value={replySubject} onChange={(event) => setReplySubject(event.target.value)} disabled={sendingReply} />
-                </div>
-                <div className="my-[0.9rem] flex items-baseline gap-[0.45rem] text-[0.72rem] text-[#929b96]">
-                  <span>Replying in thread</span>
-                  <strong className="font-semibold text-[#46534d]">{replyEmail.sender || 'Unknown sender'}</strong>
+                  <div className="mt-2 flex min-w-0 items-center gap-2 border-t border-[#edf0ec] pt-2 text-[0.68rem] text-[#829088]">
+                    <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-[#e2efe8] text-[0.62rem] font-bold text-[#176b61]" aria-hidden="true">{(replyEmail.sender_name || replyEmail.sender || 'G').charAt(0).toUpperCase()}</span>
+                    <span className="truncate">Replying to <strong className="font-semibold text-[#46534d]">{replyEmail.sender || 'Unknown sender'}</strong></span>
+                  </div>
                 </div>
                 <input
                   ref={attachmentInputRef}
@@ -741,38 +743,21 @@ function App() {
                   onChange={handleAttachmentSelection}
                   disabled={sendingReply}
                 />
-                <div className="mt-[0.9rem] flex flex-wrap items-center gap-[0.3rem]" aria-label="Message formatting">
-                  <button className="min-h-8 rounded-[5px] border border-[#deddd7] bg-[#f7f6f2] px-2 text-[0.7rem] text-[#56625c] transition-colors hover:border-[#73a79b] hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('bold')} disabled={sendingReply} title="Bold">
-                    <strong>B</strong>
-                  </button>
-                  <button className="min-h-8 rounded-[5px] border border-[#deddd7] bg-[#f7f6f2] px-2 text-[0.7rem] text-[#56625c] transition-colors hover:border-[#73a79b] hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('italic')} disabled={sendingReply} title="Italic">
-                    <em>I</em>
-                  </button>
-                  <button className="min-h-8 rounded-[5px] border border-[#deddd7] bg-[#f7f6f2] px-2 text-[0.7rem] text-[#56625c] transition-colors hover:border-[#73a79b] hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('underline')} disabled={sendingReply} title="Underline">
-                    <u>U</u>
-                  </button>
-                  <button className="min-h-8 rounded-[5px] border border-[#deddd7] bg-[#f7f6f2] px-2 text-[0.7rem] text-[#56625c] transition-colors hover:border-[#73a79b] hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('insertUnorderedList')} disabled={sendingReply} title="Bullet list">
-                    • List
-                  </button>
-                  <button className="min-h-8 rounded-[5px] border border-[#deddd7] bg-[#f7f6f2] px-2 text-[0.7rem] text-[#56625c] transition-colors hover:border-[#73a79b] hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('insertOrderedList')} disabled={sendingReply} title="Numbered list">
-                    1. List
-                  </button>
-                  <button className="min-h-8 rounded-[5px] border border-[#deddd7] bg-[#f7f6f2] px-2 text-[0.7rem] text-[#56625c] transition-colors hover:border-[#73a79b] hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('createLink')} disabled={sendingReply} title="Insert link">
-                    Link
-                  </button>
-                  <button className="min-h-8 rounded-[5px] border border-[#deddd7] bg-[#f7f6f2] px-2 text-[0.7rem] text-[#56625c] transition-colors hover:border-[#73a79b] hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('justifyLeft')} disabled={sendingReply} title="Align left">
-                    Left
-                  </button>
-                  <button className="min-h-8 rounded-[5px] border border-[#deddd7] bg-[#f7f6f2] px-2 text-[0.7rem] text-[#56625c] transition-colors hover:border-[#73a79b] hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('justifyCenter')} disabled={sendingReply} title="Align center">
-                    Center
-                  </button>
-                  <button type="button" className="ml-auto min-h-8 rounded-[5px] border border-[#deddd7] bg-[#f7f6f2] px-2 text-[0.7rem] text-[#56625c] transition-colors hover:border-[#73a79b] hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60 max-[560px]:ml-0" onClick={() => attachmentInputRef.current?.click()} disabled={sendingReply} title="Attach files">
-                    Attach files
+                <div className="flex shrink-0 flex-wrap items-center gap-1 border-y border-[#e4e9e4] bg-[#f8faf7] px-5 py-2 max-[767px]:px-4" aria-label="Message formatting">
+                  <button className="grid h-8 w-8 place-items-center rounded-[5px] text-[0.76rem] text-[#42544b] transition-colors hover:bg-[#e4eee8] active:bg-[#d3e4da] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('bold')} disabled={sendingReply} title="Bold" aria-label="Bold"><strong>B</strong></button>
+                  <button className="grid h-8 w-8 place-items-center rounded-[5px] text-[0.76rem] text-[#42544b] transition-colors hover:bg-[#e4eee8] active:bg-[#d3e4da] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('italic')} disabled={sendingReply} title="Italic" aria-label="Italic"><em>I</em></button>
+                  <button className="grid h-8 w-8 place-items-center rounded-[5px] text-[0.76rem] text-[#42544b] transition-colors hover:bg-[#e4eee8] active:bg-[#d3e4da] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('underline')} disabled={sendingReply} title="Underline" aria-label="Underline"><u>U</u></button>
+                  <span className="mx-1 h-5 w-px bg-[#dfe5df]" aria-hidden="true" />
+                  <button className="h-8 rounded-[5px] px-2 text-[0.7rem] text-[#42544b] transition-colors hover:bg-[#e4eee8] active:bg-[#d3e4da] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => applyFormatting('insertUnorderedList')} disabled={sendingReply} title="Bullet list">• List</button>
+                  <button className="h-8 rounded-[5px] px-2 text-[0.7rem] text-[#42544b] transition-colors hover:bg-[#e4eee8] active:bg-[#d3e4da] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60 max-[420px]:hidden" type="button" onClick={() => applyFormatting('insertOrderedList')} disabled={sendingReply} title="Numbered list">1. List</button>
+                  <button className="h-8 rounded-[5px] px-2 text-[0.7rem] text-[#42544b] transition-colors hover:bg-[#e4eee8] active:bg-[#d3e4da] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60 max-[420px]:hidden" type="button" onClick={() => applyFormatting('createLink')} disabled={sendingReply} title="Insert link">Link</button>
+                  <button className="ml-auto inline-flex h-8 items-center gap-1.5 rounded-[5px] bg-[#e4eee8] px-3 text-[0.7rem] font-semibold text-[#174f47] transition-colors hover:bg-[#d3e4da] active:bg-[#c3d9cd] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:opacity-60" type="button" onClick={() => attachmentInputRef.current?.click()} disabled={sendingReply} title="Attach files">
+                    <span aria-hidden="true">＋</span> Attach
                   </button>
                 </div>
                 <div
                   ref={replyEditorRef}
-                  className="mt-[0.65rem] block min-h-[175px] w-full rounded-md border border-[#d8d7d0] bg-white p-3 text-[0.82rem] leading-[1.6] text-[#202825] focus:border-[#73a79b] focus:outline-2 focus:outline-offset-1 focus:outline-[rgba(23,107,97,0.16)] empty:before:content-[attr(data-placeholder)] empty:before:text-[#a1a9a4]"
+                  className="min-h-[8rem] flex-1 overflow-y-auto bg-white px-5 py-4 text-[0.84rem] leading-[1.65] text-[#202825] focus:outline-none empty:before:content-[attr(data-placeholder)] empty:before:text-[#a1a9a4] max-[767px]:px-4 max-[767px]:py-3"
                   contentEditable={!sendingReply}
                   role="textbox"
                   aria-multiline="true"
@@ -781,26 +766,40 @@ function App() {
                   onInput={(event) => setReplyBody(event.currentTarget.innerHTML)}
                   suppressContentEditableWarning
                 />
+                {replyError && <div className="shrink-0 border-t border-[#f0d4cd] bg-[#fff3ef] px-5 py-2 text-[0.76rem] text-[#9a4d3d] max-[767px]:px-4" role="alert">{replyError}</div>}
                 {replyAttachments.length > 0 && (
-                  <div className="mt-[0.65rem] flex flex-wrap gap-[0.45rem]" aria-label="Selected attachments">
-                    {replyAttachments.map(({ id, file }) => (
-                      <div className="inline-flex max-w-full items-center gap-[0.45rem] rounded-md border border-[#d8d7d0] bg-[#f7f6f2] px-[0.55rem] py-[0.4rem] text-[0.7rem] text-[#46534d]" key={id}>
-                        <span className="max-w-[210px] overflow-hidden text-ellipsis whitespace-nowrap">{file.name}</span>
-                        <small className="text-[#929b96]">{formatFileSize(file.size)}</small>
-                        <button className="rounded px-1 text-[#78847e] transition-colors hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-[#176b61]" type="button" onClick={() => removeAttachment(id)} disabled={sendingReply} aria-label={`Remove ${file.name}`}>
-                          ×
-                        </button>
+                  <div className="relative z-10 shrink-0 border-t border-[#e4e9e4] bg-[#fbfcfa] px-5 py-2 max-[767px]:px-4" aria-label="Selected attachments">
+                    <div className="flex min-w-0 items-center gap-2">
+                      <span className="grid h-8 w-8 shrink-0 place-items-center rounded-[6px] bg-[#e4eee8] text-[#176b61]" aria-hidden="true">⌁</span>
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-[0.72rem] font-semibold text-[#34483e]">{replyAttachments.length} attached {replyAttachments.length === 1 ? 'file' : 'files'}</p>
+                        <p className="text-[0.62rem] text-[#77847c]">{formatFileSize(replyAttachments.reduce((total, item) => total + item.file.size, 0))} total</p>
                       </div>
-                    ))}
+                      <details className="group relative shrink-0">
+                        <summary className="cursor-pointer list-none rounded-[5px] px-2.5 py-2 text-[0.68rem] font-semibold text-[#176b61] hover:bg-[#eaf2ed] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61]">Manage</summary>
+                        <div className="absolute bottom-[calc(100%+0.5rem)] right-0 grid w-[min(26rem,calc(100vw-2rem))] grid-cols-1 gap-1 rounded-[8px] border border-[#d8e4dd] bg-white p-2 shadow-[0_10px_32px_rgba(24,35,30,0.2)] sm:grid-cols-2">
+                          {replyAttachments.map(({ id, file }) => (
+                            <div className="flex min-w-0 items-center gap-2 rounded-[5px] bg-[#f7f9f6] px-2 py-1.5 text-[0.66rem] text-[#46534d]" key={id}>
+                              <span className="min-w-0 flex-1 truncate" title={file.name}>{file.name}</span>
+                              <small className="shrink-0 text-[#929b96]">{formatFileSize(file.size)}</small>
+                              <button className="grid h-7 w-7 shrink-0 place-items-center rounded-[4px] text-[#65746b] hover:bg-[#f8e7e3] hover:text-[#9a4d3d] focus-visible:outline-2 focus-visible:outline-[#176b61]" type="button" onClick={() => removeAttachment(id)} disabled={sendingReply} aria-label={`Remove ${file.name}`}>×</button>
+                            </div>
+                          ))}
+                        </div>
+                      </details>
+                    </div>
                   </div>
                 )}
-                <div className="mt-4 flex justify-end gap-[0.6rem] max-[560px]:sticky max-[560px]:bottom-[-1rem] max-[560px]:z-[1] max-[560px]:border-t max-[560px]:border-[#deddd7] max-[560px]:bg-[#fffefa] max-[560px]:px-0 max-[560px]:pt-3 max-[560px]:pb-4 max-[560px]:[&_button]:flex-1">
-                  <button type="button" className="h-[2.45rem] rounded-md border border-[#d8d7d0] bg-[#fffefa] px-4 text-[0.76rem] text-[#5e6a64] transition-colors hover:border-[#73a79b] hover:bg-[#c8e4da] hover:text-[#174f47] active:bg-[#afd7c8] focus-visible:outline-2 focus-visible:outline-offset-1 focus-visible:outline-[#176b61] disabled:cursor-wait disabled:opacity-60" onClick={requestCloseComposer} disabled={sendingReply}>
-                    Cancel
-                  </button>
-                  <button type="submit" className="h-[2.45rem] rounded-md border border-[#176b61] bg-[#176b61] px-4 text-[0.76rem] text-white transition-colors hover:bg-[#0f806f] active:bg-[#0b574f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61] disabled:cursor-wait disabled:opacity-60" disabled={sendingReply || !getReplyPlainText(replyBody)}>
-                    {sendingReply ? 'Sending…' : 'Send'}
-                  </button>
+                <div className="flex shrink-0 items-center justify-between gap-3 border-t border-[#e4e9e4] bg-[#f8faf7] px-5 py-3 max-[767px]:px-4 max-[767px]:pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                  <span className="min-w-0 truncate text-[0.66rem] text-[#829088]">{isDraggingAttachment ? 'Drop files to attach' : replyAttachments.length ? `${replyAttachments.length} file${replyAttachments.length === 1 ? '' : 's'} ready` : 'Your reply will be sent to this thread'}</span>
+                  <div className="flex shrink-0 gap-2">
+                    <button type="button" className="h-10 rounded-[6px] border border-[#cbd8cf] bg-white px-4 text-[0.76rem] font-semibold text-[#41534a] transition-colors hover:bg-[#edf3ef] active:bg-[#dce8e0] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61] disabled:cursor-wait disabled:opacity-60" onClick={requestCloseComposer} disabled={sendingReply}>
+                      Cancel
+                    </button>
+                    <button type="submit" className="h-10 rounded-[6px] border border-[#104f47] bg-[#12584f] px-5 text-[0.78rem] font-semibold text-white shadow-[0_2px_5px_rgba(12,54,45,0.2)] transition-colors hover:bg-[#0d493f] active:bg-[#093c34] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61] disabled:cursor-wait disabled:opacity-55" disabled={sendingReply || !getReplyPlainText(replyBody)}>
+                      {sendingReply ? 'Sending…' : 'Send reply'}
+                    </button>
+                  </div>
                 </div>
               </form>
             </section>

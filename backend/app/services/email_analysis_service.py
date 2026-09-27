@@ -9,9 +9,9 @@ from typing import Any
 
 from sqlalchemy import text
 
-from backend.app.services.email_normalization_service import normalize_email_message
-from backend.app.services.email_signal_service import extract_local_signals
-from backend.database import engine
+from .email_normalization_service import normalize_email_message
+from .email_signal_service import extract_local_signals
+from ..database import engine
 
 APPROVED_CATEGORIES = [
     "ACTION_REQUIRED",
@@ -1392,7 +1392,7 @@ def analyze_email_for_user(
     if not email_record:
         raise ValueError("Email not found for this user")
 
-    from backend.app import main as app_main
+    from .. import main as app_main
 
     print(f"[ANALYSIS] starting email_id={email_record['id']} message_id={gmail_message_id}")
 

@@ -1,17 +1,21 @@
 import base64
 import io
 import json
+import sys
 from datetime import datetime, timezone
 from email import policy
 from email.parser import BytesParser
+from pathlib import Path
 from urllib.error import HTTPError
 from urllib.parse import parse_qs, urlparse
 
 from fastapi.testclient import TestClient
 
-from backend.app import main as app_main
-from backend.app.main import _attach_gmail_bodies, _fetch_json, _normalize_token_expiry, app
-from backend.app.services.email_analysis_service import (
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from app import main as app_main
+from app.main import _attach_gmail_bodies, _fetch_json, _normalize_token_expiry, app
+from app.services.email_analysis_service import (
     _build_deterministic_classification,
     extract_local_signals,
     normalize_email_message,
@@ -41,6 +45,41 @@ def test_google_auth_redirect_has_gmail_scope_and_state():
     assert query["state"][0]
 
 
+def test_cors_allows_local_and_configured_frontend_origins():
+    assert "http://localhost:5173" in app_main.CORS_ALLOWED_ORIGINS
+    assert "http://127.0.0.1:5173" in app_main.CORS_ALLOWED_ORIGINS
+    assert app_main.FRONTEND_URL in app_main.CORS_ALLOWED_ORIGINS
+    assert "*" not in app_main.CORS_ALLOWED_ORIGINS
+
+
+def test_oauth_callback_sets_cross_site_cookie_attributes(monkeypatch):
+    state = "cross-site-oauth-test-state"
+    app.state.oauth_states[state] = 0
+    monkeypatch.setattr(app_main, "FRONTEND_URL", "https://inbox-sense.vercel.app")
+    monkeypatch.setattr(app_main, "SESSION_COOKIE_SAMESITE", "none")
+    monkeypatch.setattr(app_main, "SESSION_COOKIE_SECURE", True)
+    token_responses = iter([
+        {"access_token": "test-access-token", "refresh_token": "test-refresh-token", "expires_in": 3600},
+        {"id": "google-user", "email": "user@example.com", "name": "Inbox Sense User"},
+    ])
+    monkeypatch.setattr(app_main, "_fetch_json", lambda *args, **kwargs: next(token_responses))
+    monkeypatch.setattr(app_main, "_upsert_user", lambda user: "test-user-id")
+    monkeypatch.setattr(app_main, "_store_tokens", lambda *args: None)
+
+    response = client.get(
+        "/api/auth/google/callback",
+        params={"code": "test-code", "state": state},
+        follow_redirects=False,
+    )
+
+    assert response.status_code == 302
+    assert response.headers["location"] == "https://inbox-sense.vercel.app/?auth=success"
+    cookie = response.headers["set-cookie"].lower()
+    assert "samesite=none" in cookie
+    assert "secure" in cookie
+    assert "httponly" in cookie
+
+
 def test_google_oauth_token_failure_logs_safe_google_error(monkeypatch, capsys):
     state = "oauth-error-test-state"
     secret = "oauth-error-test-secret"
@@ -59,8 +98,8 @@ def test_google_oauth_token_failure_logs_safe_google_error(monkeypatch, capsys):
         }).encode()
         raise HTTPError(args[0], 401, "Unauthorized", {}, io.BytesIO(body))
 
-    monkeypatch.setattr("backend.app.main.GOOGLE_CLIENT_SECRET", secret)
-    monkeypatch.setattr("backend.app.main._fetch_json", fail_token_exchange)
+    monkeypatch.setattr("app.main.GOOGLE_CLIENT_SECRET", secret)
+    monkeypatch.setattr("app.main._fetch_json", fail_token_exchange)
     response = client.get(
         "/api/auth/google/callback",
         params={"code": code, "state": state},
@@ -100,7 +139,7 @@ def test_fetch_json_posts_form_encoded_data(monkeypatch):
         captured["request"] = http_request
         return DummyResponse()
 
-    monkeypatch.setattr("backend.app.main.request.urlopen", fake_urlopen)
+    monkeypatch.setattr("app.main.request.urlopen", fake_urlopen)
     result = _fetch_json(
         "https://oauth2.googleapis.com/token",
         data={"code": "test-code+value", "client_secret": "test-secret", "grant_type": "authorization_code"},
@@ -137,7 +176,7 @@ def test_reply_requires_authentication():
 
 
 def test_reply_rejects_empty_body(monkeypatch):
-    monkeypatch.setattr("backend.app.main._require_authenticated_user", lambda request: {"id": "user-123"})
+    monkeypatch.setattr("app.main._require_authenticated_user", lambda request: {"id": "user-123"})
 
     response = client.post("/api/emails/email-1/reply", data={"body": "  "})
 
@@ -146,7 +185,7 @@ def test_reply_rejects_empty_body(monkeypatch):
 
 
 def test_reply_requires_gmail_send_scope(monkeypatch):
-    monkeypatch.setattr("backend.app.main._require_authenticated_user", lambda request: {"id": "user-123"})
+    monkeypatch.setattr("app.main._require_authenticated_user", lambda request: {"id": "user-123"})
 
     class DummyConnection:
         def __enter__(self):
@@ -163,10 +202,10 @@ def test_reply_requires_gmail_send_scope(monkeypatch):
             return DummyResult()
 
     monkeypatch.setattr(
-        "backend.app.main.engine",
+        "app.main.engine",
         type("EngineStub", (), {"connect": staticmethod(lambda: DummyConnection())}),
     )
-    monkeypatch.setattr("backend.app.main._get_user_oauth_scope", lambda user_id: "https://www.googleapis.com/auth/gmail.readonly")
+    monkeypatch.setattr("app.main._get_user_oauth_scope", lambda user_id: "https://www.googleapis.com/auth/gmail.readonly")
 
     response = client.post("/api/emails/email-1/reply", data={"body": "Thanks"})
 
@@ -175,7 +214,7 @@ def test_reply_requires_gmail_send_scope(monkeypatch):
 
 
 def test_reply_sends_same_gmail_thread(monkeypatch):
-    monkeypatch.setattr("backend.app.main._require_authenticated_user", lambda request: {"id": "user-123"})
+    monkeypatch.setattr("app.main._require_authenticated_user", lambda request: {"id": "user-123"})
 
     class DummyConnection:
         def __enter__(self):
@@ -209,13 +248,13 @@ def test_reply_sends_same_gmail_thread(monkeypatch):
             return DummyMessages()
 
     monkeypatch.setattr(
-        "backend.app.main.engine",
+        "app.main.engine",
         type("EngineStub", (), {"connect": staticmethod(lambda: DummyConnection())}),
     )
-    monkeypatch.setattr("backend.app.main._get_user_oauth_scope", lambda user_id: "https://www.googleapis.com/auth/gmail.send")
-    monkeypatch.setattr("backend.app.main._get_user_oauth_record", lambda user_id: ("access", "refresh", None))
-    monkeypatch.setattr("backend.app.main._ensure_fresh_google_access_token", lambda *args: "fresh-access")
-    monkeypatch.setattr("backend.app.main.build", lambda *args, **kwargs: DummyGmailService())
+    monkeypatch.setattr("app.main._get_user_oauth_scope", lambda user_id: "https://www.googleapis.com/auth/gmail.send")
+    monkeypatch.setattr("app.main._get_user_oauth_record", lambda user_id: ("access", "refresh", None))
+    monkeypatch.setattr("app.main._ensure_fresh_google_access_token", lambda *args: "fresh-access")
+    monkeypatch.setattr("app.main.build", lambda *args, **kwargs: DummyGmailService())
 
     response = client.post(
         "/api/emails/email-1/reply",
@@ -267,9 +306,9 @@ def test_email_body_enrichment_decodes_gmail_text(monkeypatch):
         def messages(self):
             return DummyMessages()
 
-    monkeypatch.setattr("backend.app.main._get_user_oauth_record", lambda user_id: ("access", "refresh", None))
-    monkeypatch.setattr("backend.app.main._ensure_fresh_google_access_token", lambda *args: "fresh-access")
-    monkeypatch.setattr("backend.app.main.build", lambda *args, **kwargs: DummyGmailService())
+    monkeypatch.setattr("app.main._get_user_oauth_record", lambda user_id: ("access", "refresh", None))
+    monkeypatch.setattr("app.main._ensure_fresh_google_access_token", lambda *args: "fresh-access")
+    monkeypatch.setattr("app.main.build", lambda *args, **kwargs: DummyGmailService())
 
     emails = _attach_gmail_bodies("user-123", [{"gmail_message_id": "gmail-message"}])
 
@@ -302,9 +341,9 @@ def test_email_body_enrichment_resolves_inline_cid_images(monkeypatch):
         def messages(self):
             return DummyMessages()
 
-    monkeypatch.setattr("backend.app.main._get_user_oauth_record", lambda user_id: ("access", "refresh", None))
-    monkeypatch.setattr("backend.app.main._ensure_fresh_google_access_token", lambda *args: "fresh-access")
-    monkeypatch.setattr("backend.app.main.build", lambda *args, **kwargs: DummyGmailService())
+    monkeypatch.setattr("app.main._get_user_oauth_record", lambda user_id: ("access", "refresh", None))
+    monkeypatch.setattr("app.main._ensure_fresh_google_access_token", lambda *args: "fresh-access")
+    monkeypatch.setattr("app.main.build", lambda *args, **kwargs: DummyGmailService())
 
     emails = _attach_gmail_bodies("user-123", [{"gmail_message_id": "gmail-message"}])
 
@@ -312,7 +351,7 @@ def test_email_body_enrichment_resolves_inline_cid_images(monkeypatch):
 
 
 def test_reply_rejects_invalid_recipient(monkeypatch):
-    monkeypatch.setattr("backend.app.main._require_authenticated_user", lambda request: {"id": "user-123"})
+    monkeypatch.setattr("app.main._require_authenticated_user", lambda request: {"id": "user-123"})
 
     class DummyConnection:
         def __enter__(self):
@@ -339,11 +378,11 @@ def test_reply_rejects_invalid_recipient(monkeypatch):
         def messages(self):
             return DummyMessages()
 
-    monkeypatch.setattr("backend.app.main.engine", type("EngineStub", (), {"connect": staticmethod(lambda: DummyConnection())}))
-    monkeypatch.setattr("backend.app.main._get_user_oauth_scope", lambda user_id: "https://www.googleapis.com/auth/gmail.send")
-    monkeypatch.setattr("backend.app.main._get_user_oauth_record", lambda user_id: ("access", "refresh", None))
-    monkeypatch.setattr("backend.app.main._ensure_fresh_google_access_token", lambda *args: "fresh-access")
-    monkeypatch.setattr("backend.app.main.build", lambda *args, **kwargs: DummyGmailService())
+    monkeypatch.setattr("app.main.engine", type("EngineStub", (), {"connect": staticmethod(lambda: DummyConnection())}))
+    monkeypatch.setattr("app.main._get_user_oauth_scope", lambda user_id: "https://www.googleapis.com/auth/gmail.send")
+    monkeypatch.setattr("app.main._get_user_oauth_record", lambda user_id: ("access", "refresh", None))
+    monkeypatch.setattr("app.main._ensure_fresh_google_access_token", lambda *args: "fresh-access")
+    monkeypatch.setattr("app.main.build", lambda *args, **kwargs: DummyGmailService())
 
     response = client.post(
         "/api/emails/email-1/reply",
@@ -355,7 +394,7 @@ def test_reply_rejects_invalid_recipient(monkeypatch):
 
 
 def test_reply_rejects_blocked_attachment_type(monkeypatch):
-    monkeypatch.setattr("backend.app.main._require_authenticated_user", lambda request: {"id": "user-123"})
+    monkeypatch.setattr("app.main._require_authenticated_user", lambda request: {"id": "user-123"})
 
     response = client.post(
         "/api/emails/email-1/reply",
@@ -427,12 +466,12 @@ def test_gmail_sync_reaches_google_api_after_expiry_normalization(monkeypatch):
         def messages(self):
             return DummyMessages()
 
-    monkeypatch.setattr("backend.app.main._require_authenticated_user", lambda request: {"id": "user-123"})
-    monkeypatch.setattr("backend.app.main._get_user_oauth_record", lambda user_id: ("access-token", "refresh-token", datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)))
-    monkeypatch.setattr("backend.app.main._ensure_fresh_google_access_token", lambda user_id, access_token, refresh_token: "fresh-token")
-    monkeypatch.setattr("backend.app.main.build", lambda *args, **kwargs: DummyGmailService())
+    monkeypatch.setattr("app.main._require_authenticated_user", lambda request: {"id": "user-123"})
+    monkeypatch.setattr("app.main._get_user_oauth_record", lambda user_id: ("access-token", "refresh-token", datetime(2025, 1, 2, 3, 4, 5, tzinfo=timezone.utc)))
+    monkeypatch.setattr("app.main._ensure_fresh_google_access_token", lambda user_id, access_token, refresh_token: "fresh-token")
+    monkeypatch.setattr("app.main.build", lambda *args, **kwargs: DummyGmailService())
     monkeypatch.setattr(
-        "backend.app.main.engine",
+        "app.main.engine",
         type(
             "EngineStub",
             (),

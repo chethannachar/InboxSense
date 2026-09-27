@@ -23,32 +23,33 @@ from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 from sqlalchemy import text
 
-from backend.app.services.email_analysis_service import (
+from .services.email_analysis_service import (
     analyze_email_for_user,
     analyze_user_emails_batch,
     get_attention_summary,
     list_user_emails_with_analysis,
     reclassify_existing_emails,
 )
-from backend.app.services.email_normalization_service import normalize_email_message
-from backend.database import engine
+from .services.email_normalization_service import normalize_email_message
+from .database import engine
 
-for env_path in (
-    Path(__file__).resolve().parents[1] / ".env",
-    Path(__file__).resolve().parents[2] / ".env",
-):
-    load_dotenv(env_path, override=env_path == Path(__file__).resolve().parents[2] / ".env")
+load_dotenv(Path(__file__).resolve().parents[1] / ".env")
 
 app = FastAPI(title="Gmail Attention Dashboard API")
 
 GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID", "")
 GOOGLE_CLIENT_SECRET = os.getenv("GOOGLE_CLIENT_SECRET", "")
-GOOGLE_REDIRECT_URI = os.getenv(
-    "GOOGLE_REDIRECT_URI",
-    "http://localhost:8000/api/auth/google/callback",
-)
-FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
-SECRET_KEY = os.getenv("SECRET_KEY", "change-me")
+GOOGLE_REDIRECT_URI = os.getenv("GOOGLE_REDIRECT_URI", "")
+FRONTEND_URL = os.getenv("FRONTEND_URL", "").rstrip("/")
+SECRET_KEY = os.getenv("SECRET_KEY", "")
+SESSION_COOKIE_SAMESITE = os.getenv("SESSION_COOKIE_SAMESITE", "lax").strip().lower()
+SESSION_COOKIE_SECURE = os.getenv("SESSION_COOKIE_SECURE", "false").strip().lower() in {"1", "true", "yes", "on"}
+if not SECRET_KEY:
+    raise RuntimeError("SECRET_KEY must be configured in backend/.env or the process environment")
+if SESSION_COOKIE_SAMESITE not in {"lax", "strict", "none"}:
+    raise RuntimeError("SESSION_COOKIE_SAMESITE must be lax, strict, or none")
+if SESSION_COOKIE_SAMESITE == "none" and not SESSION_COOKIE_SECURE:
+    raise RuntimeError("SESSION_COOKIE_SECURE must be true when SESSION_COOKIE_SAMESITE is none")
 GOOGLE_SCOPE = " ".join(
     [
         "openid",
@@ -63,7 +64,6 @@ print(
     "[OAUTH] config "
     f"client_id_loaded={'yes' if GOOGLE_CLIENT_ID else 'no'} "
     f"client_secret_loaded={'yes' if GOOGLE_CLIENT_SECRET else 'no'} "
-    f"client_secret_length={len(GOOGLE_CLIENT_SECRET)} "
     f"redirect_uri={GOOGLE_REDIRECT_URI}"
 )
 
@@ -71,10 +71,14 @@ app.state.oauth_states = {}
 app.state.fernet = Fernet(urlsafe_b64encode(sha256(SECRET_KEY.encode()).digest()))
 SESSION_COOKIE_NAME = "session_user_id"
 SESSION_COOKIE_TTL_SECONDS = 60 * 60 * 24 * 7
+LOCAL_FRONTEND_ORIGINS = ["http://localhost:5173", "http://127.0.0.1:5173"]
+CORS_ALLOWED_ORIGINS = list(LOCAL_FRONTEND_ORIGINS)
+if FRONTEND_URL and FRONTEND_URL not in CORS_ALLOWED_ORIGINS:
+    CORS_ALLOWED_ORIGINS.append(FRONTEND_URL)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=CORS_ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -566,7 +570,7 @@ def get_client_config():
 
 @app.get("/api/auth/google")
 def google_oauth_start():
-    if not GOOGLE_CLIENT_ID:
+    if not GOOGLE_CLIENT_ID or not GOOGLE_CLIENT_SECRET or not GOOGLE_REDIRECT_URI or not FRONTEND_URL:
         raise HTTPException(status_code=500, detail="Google OAuth is not configured")
 
     state = secrets.token_urlsafe(32)
@@ -656,8 +660,8 @@ def google_oauth_callback(request: Request):
         max_age=SESSION_COOKIE_TTL_SECONDS,
         path="/",
         httponly=True,
-        samesite="lax",
-        secure=False,
+        samesite=SESSION_COOKIE_SAMESITE,
+        secure=SESSION_COOKIE_SECURE,
     )
     return response
 
