@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import DOMPurify from 'dompurify'
-import AuthScreen from './pages/AuthScreen.jsx'
+import AuthScreen from '../../frontend/src/pages/AuthScreen.jsx'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL?.replace(/\/+$/, '')
 
