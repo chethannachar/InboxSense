@@ -1,12 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import DOMPurify from 'dompurify'
 import AuthScreen from '../../frontend/src/pages/AuthScreen.jsx'
+import LegalPage from './pages/LegalPage.jsx'
 
 const API_BASE_URL = import.meta.env.VITE_API_URL?.replace(/\/+$/, '')
-
-if (!API_BASE_URL) {
-  throw new Error('VITE_API_URL must be set to the backend API origin')
-}
 
 const CATEGORY_FILTERS = [
   'ACTION_REQUIRED',
@@ -241,7 +238,11 @@ function EmailLoadingVisualization() {
   )
 }
 
-function App() {
+function DashboardApp() {
+  if (!API_BASE_URL) {
+    throw new Error('VITE_API_URL must be set to the backend API origin')
+  }
+
   const [user, setUser] = useState(null)
   const [emails, setEmails] = useState([])
   const [loadingUser, setLoadingUser] = useState(true)
@@ -809,6 +810,16 @@ function App() {
       </section>
     </main>
   )
+}
+
+function App() {
+  const path = window.location.pathname.replace(/\/+$/, '') || '/'
+
+  if (path === '/privacy' || path === '/terms') {
+    return <LegalPage page={path.slice(1)} />
+  }
+
+  return <DashboardApp />
 }
 
 export default App

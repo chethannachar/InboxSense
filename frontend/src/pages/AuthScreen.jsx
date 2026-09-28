@@ -127,7 +127,7 @@ export default function AuthScreen({ onGoogleLogin, errorMessage, logoutError, c
           <div className="mb-7 hidden items-center gap-2 text-[0.67rem] font-semibold text-[#61756b] sm:mb-10 lg:flex"><span className="h-px w-7 bg-[#e0a45d]" /> YOUR INBOX, WITH CLARITY</div>
           <p className="text-[0.67rem] font-bold text-[#176b61]">WELCOME TO INBOXSENSE</p>
           <h2 id="auth-title" className="mt-3 text-[1.85rem] font-medium leading-[1.06] text-[#202825] sm:text-[2.05rem] lg:mt-4 lg:text-[2.35rem] xl:text-[2.8rem]">A little less noise. A lot more signal.</h2>
-          <p className="mt-5 max-w-[25rem] text-[0.94rem] leading-[1.7] text-[#68756e]">Connect your Google inbox and find the messages that need you, without the scroll.</p>
+          <p className="mt-5 max-w-[25rem] text-[0.94rem] leading-[1.7] text-[#68756e]">InboxSense is an email dashboard that connects with your Google account to organize and categorize Gmail messages. Review relevant email details and reply from one focused view.</p>
 
           {errorMessage && <p className="mt-6 rounded-md border border-[#f0d4cd] bg-[#fff3ef] p-3 text-left text-sm text-[#9a4d3d]" role="alert">{errorMessage}</p>}
           {logoutError && <p className="mt-3 rounded-md border border-[#f0d4cd] bg-[#fff3ef] p-3 text-left text-sm text-[#9a4d3d]" role="alert">{logoutError}</p>}
@@ -142,6 +142,10 @@ export default function AuthScreen({ onGoogleLogin, errorMessage, logoutError, c
             <p className="text-[0.68rem] text-[#7b8780]">Secure authentication powered by Google.</p>
             <span className="h-px flex-1 bg-[#e1e1da]" aria-hidden="true" />
           </div>
+          <nav className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[0.76rem] text-[#55716a]" aria-label="Legal information">
+            <a className="underline decoration-[#b9c9c0] underline-offset-4 hover:text-[#174f47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61]" href="/privacy">Privacy Policy</a>
+            <a className="underline decoration-[#b9c9c0] underline-offset-4 hover:text-[#174f47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61]" href="/terms">Terms of Service</a>
+          </nav>
           <div className="mt-12 hidden items-start gap-3 border-t border-[#deddd7] pt-5 text-[0.72rem] leading-[1.55] text-[#89938d] lg:flex"><span className="mt-0.5 text-[#176b61]" aria-hidden="true">◎</span><p>Your messages stay yours. InboxSense organizes your inbox so you can decide what deserves your attention.</p></div>
         </div>
       </section>
