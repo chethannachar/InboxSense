@@ -19,7 +19,7 @@ const CATEGORY_DESCRIPTIONS = {
 
 export default function AuthScreen({ onGoogleLogin, errorMessage, logoutError, categories, categoryLabels, categoryStyles }) {
   return (
-    <main className="auth-page grid h-svh min-h-0 grid-rows-[minmax(0,0.4fr)_minmax(0,0.6fr)] overflow-hidden bg-[#f6f5f0] text-[#202825] lg:grid-rows-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(25rem,0.75fr)]">
+    <main className="auth-page grid h-svh min-h-0 grid-rows-[minmax(0,0.4fr)_minmax(0,0.6fr)] max-[639px]:grid-rows-[minmax(0,0.34fr)_minmax(0,0.66fr)] overflow-hidden bg-[#f6f5f0] text-[#202825] lg:grid-rows-1 lg:grid-cols-[minmax(0,1.25fr)_minmax(25rem,0.75fr)]">
       <section className="relative isolate hidden min-h-0 flex-col overflow-hidden bg-[#163f38] px-6 pb-7 pt-6 text-[#f7f7ee] sm:px-10 sm:pb-9 sm:pt-8 lg:flex lg:h-svh lg:px-[clamp(2.5rem,6vw,6rem)] lg:pb-10 lg:pt-9" aria-labelledby="brand-title">
         <div className="auth-grid-texture pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
         <header className="flex items-center justify-between">
@@ -88,17 +88,17 @@ export default function AuthScreen({ onGoogleLogin, errorMessage, logoutError, c
         </footer>
       </section>
 
-      <section className="relative isolate flex min-h-0 flex-col justify-center overflow-hidden bg-[#163f38] px-6 py-5 text-[#f7f7ee] lg:hidden sm:px-10" aria-label="InboxSense inbox preview">
+      <section className="relative isolate flex min-h-0 flex-col justify-center overflow-hidden bg-[#163f38] px-6 py-5 text-[#f7f7ee] max-[639px]:-translate-y-2 max-[639px]:px-5 max-[639px]:pt-3 max-[639px]:pb-2 lg:hidden sm:px-10" aria-label="InboxSense inbox preview">
         <div className="auth-grid-texture pointer-events-none absolute inset-0 -z-10" aria-hidden="true" />
         <div className="relative z-10">
           <div className="flex items-center gap-3">
-            <span className="grid h-10 w-10 place-items-center rounded-[8px] bg-[#e2efe8] text-[0.72rem] font-extrabold text-[#176b61]" aria-hidden="true">IS</span>
+            <span className="grid h-10 w-10 place-items-center rounded-[8px] bg-[#e2efe8] text-[0.72rem] font-extrabold text-[#176b61] max-[639px]:h-11 max-[639px]:w-11" aria-hidden="true">IS</span>
             <div>
-              <strong className="text-[1rem] font-medium">InboxSense</strong>
+              <strong className="text-[1rem] font-medium max-[639px]:text-[1.1rem]">InboxSense</strong>
               <span className="mt-0.5 block text-[0.58rem] font-semibold text-[#bdd0c8]">INBOX INTELLIGENCE</span>
             </div>
           </div>
-          <div className="mt-3 rounded-[8px] border border-[#d6e2d9]/70 bg-[#f7f6f0] p-2.5 text-[#263a34] shadow-[0_10px_24px_rgba(4,23,20,0.18)]">
+          <div className="mt-3 rounded-[8px] border border-[#d6e2d9]/70 bg-[#f7f6f0] p-2.5 text-[#263a34] shadow-[0_10px_24px_rgba(4,23,20,0.18)] max-[639px]:mt-2 max-[639px]:p-2">
             <div className="mb-2 flex items-center justify-between px-0.5">
               <div className="flex items-center gap-2">
                 <span className="grid h-7 w-7 place-items-center rounded-[6px] bg-[#dcebe4] text-[#176b61]" aria-hidden="true"><svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="1.7"><path d="M3.5 6.5h17v12h-17z" /><path d="m4 7 8 6 8-6" /></svg></span>
@@ -107,13 +107,13 @@ export default function AuthScreen({ onGoogleLogin, errorMessage, logoutError, c
               <span className="text-[0.52rem] font-semibold text-[#718079]">2 OF 3 PRIORITIES</span>
             </div>
             <div className="grid gap-1.5">
-              <div className="flex min-w-0 items-center gap-2 rounded-[6px] border border-[#e8e8e1] bg-white px-2 py-1.5">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#f8e5ca] text-[0.56rem] font-bold text-[#9a6227]" aria-hidden="true">M</span>
+              <div className="flex min-w-0 items-center gap-2 rounded-[6px] border border-[#e8e8e1] bg-white px-2 py-1.5 max-[639px]:py-1">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#f8e5ca] text-[0.56rem] font-bold text-[#9a6227] max-[639px]:h-6 max-[639px]:w-6" aria-hidden="true">M</span>
                 <div className="min-w-0 flex-1"><p className="truncate text-[0.62rem] font-semibold">Maya Chen</p><p className="truncate text-[0.54rem] text-[#627169]">Review due Friday</p></div>
                 <span className="shrink-0 rounded-[4px] bg-[#fff0dc] px-1.5 py-1 text-[0.46rem] font-semibold text-[#a56721]">ACTION</span>
               </div>
-              <div className="flex min-w-0 items-center gap-2 rounded-[6px] border border-[#e8e8e1] bg-white px-2 py-1.5">
-                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#e3efe2] text-[0.56rem] font-bold text-[#4c7b59]" aria-hidden="true">J</span>
+              <div className="flex min-w-0 items-center gap-2 rounded-[6px] border border-[#e8e8e1] bg-white px-2 py-1.5 max-[639px]:py-1">
+                <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-[#e3efe2] text-[0.56rem] font-bold text-[#4c7b59] max-[639px]:h-6 max-[639px]:w-6" aria-hidden="true">J</span>
                 <div className="min-w-0 flex-1"><p className="truncate text-[0.62rem] font-semibold">Jordan Lee</p><p className="truncate text-[0.54rem] text-[#627169]">A new role worth a look</p></div>
                 <span className="shrink-0 rounded-[4px] bg-[#e7f2e8] px-1.5 py-1 text-[0.46rem] font-semibold text-[#4f8060]">OPPORTUNITY</span>
               </div>
@@ -126,25 +126,25 @@ export default function AuthScreen({ onGoogleLogin, errorMessage, logoutError, c
         <div className="mx-auto w-full max-w-[27rem]">
           <div className="mb-7 hidden items-center gap-2 text-[0.67rem] font-semibold text-[#61756b] sm:mb-10 lg:flex"><span className="h-px w-7 bg-[#e0a45d]" /> YOUR INBOX, WITH CLARITY</div>
           <p className="text-[0.67rem] font-bold text-[#176b61]">WELCOME TO INBOXSENSE</p>
-          <h2 id="auth-title" className="mt-3 text-[1.85rem] font-medium leading-[1.06] text-[#202825] sm:text-[2.05rem] lg:mt-4 lg:text-[2.35rem] xl:text-[2.8rem]">A little less noise. A lot more signal.</h2>
-          <p className="mt-5 max-w-[25rem] text-[0.94rem] leading-[1.7] text-[#68756e]">InboxSense is an email dashboard that connects with your Google account to organize and categorize Gmail messages. Review relevant email details and reply from one focused view.</p>
+          <h2 id="auth-title" className="mt-3 text-[1.85rem] font-medium leading-[1.06] text-[#202825] max-[639px]:mt-2 sm:text-[2.05rem] lg:mt-4 lg:text-[2.35rem] xl:text-[2.8rem]">A little less noise. A lot more signal.</h2>
+          <p className="mt-5 max-w-[25rem] text-[0.94rem] leading-[1.7] text-[#68756e] max-[639px]:mt-3">InboxSense is an email dashboard that connects with your Google account to organize and categorize Gmail messages. Review relevant email details and reply from one focused view.</p>
 
           {errorMessage && <p className="mt-6 rounded-md border border-[#f0d4cd] bg-[#fff3ef] p-3 text-left text-sm text-[#9a4d3d]" role="alert">{errorMessage}</p>}
           {logoutError && <p className="mt-3 rounded-md border border-[#f0d4cd] bg-[#fff3ef] p-3 text-left text-sm text-[#9a4d3d]" role="alert">{logoutError}</p>}
 
-          <button type="button" className="mt-8 flex min-h-[3.4rem] w-full items-center justify-center gap-3 rounded-[7px] border border-[#145b51] bg-[#176b61] px-4 py-3 text-[0.88rem] font-semibold text-white transition-[background-color,border-color,box-shadow,transform] duration-150 hover:border-[#104f47] hover:bg-[#12584f] hover:shadow-[0_3px_10px_rgba(40,47,43,0.16)] active:translate-y-px active:bg-[#104f47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61] motion-reduce:transition-none" onClick={onGoogleLogin}>
+          <button type="button" className="mt-8 flex min-h-[3.4rem] w-full items-center justify-center gap-3 rounded-[7px] border border-[#145b51] bg-[#176b61] px-4 py-3 text-[0.88rem] font-semibold text-white transition-[background-color,border-color,box-shadow,transform] duration-150 hover:border-[#104f47] hover:bg-[#12584f] hover:shadow-[0_3px_10px_rgba(40,47,43,0.16)] active:translate-y-px active:bg-[#104f47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61] motion-reduce:transition-none max-[639px]:mt-5" onClick={onGoogleLogin}>
             <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white" aria-hidden="true"><GoogleLogo /></span>
             <span className="text-center">Continue with Google</span>
           </button>
 
-          <div className="mt-5 flex items-center gap-3">
+          <div className="mt-5 flex items-center gap-3 max-[639px]:mt-3">
             <span className="h-px flex-1 bg-[#e1e1da]" aria-hidden="true" />
             <p className="text-[0.68rem] text-[#7b8780]">Secure authentication powered by Google.</p>
             <span className="h-px flex-1 bg-[#e1e1da]" aria-hidden="true" />
           </div>
-          <nav className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[0.76rem] text-[#55716a]" aria-label="Legal information">
-            <a className="underline decoration-[#b9c9c0] underline-offset-4 hover:text-[#174f47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61]" href="/privacy">Privacy Policy</a>
-            <a className="underline decoration-[#b9c9c0] underline-offset-4 hover:text-[#174f47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61]" href="/terms">Terms of Service</a>
+          <nav className="mt-7 flex flex-wrap gap-x-5 gap-y-2 text-[0.76rem] text-[#55716a] max-[639px]:mt-5" aria-label="Legal information">
+            <a className="underline decoration-[#b9c9c0] underline-offset-4 hover:text-[#174f47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61]" href="/privacy?from=auth">Privacy Policy</a>
+            <a className="underline decoration-[#b9c9c0] underline-offset-4 hover:text-[#174f47] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61]" href="/terms?from=auth">Terms of Service</a>
           </nav>
           <div className="mt-12 hidden items-start gap-3 border-t border-[#deddd7] pt-5 text-[0.72rem] leading-[1.55] text-[#89938d] lg:flex"><span className="mt-0.5 text-[#176b61]" aria-hidden="true">◎</span><p>Your messages stay yours. InboxSense organizes your inbox so you can decide what deserves your attention.</p></div>
         </div>

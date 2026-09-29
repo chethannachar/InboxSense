@@ -141,6 +141,9 @@ const LEGAL_CONTENT = {
 
 export default function LegalPage({ page }) {
   const content = LEGAL_CONTENT[page]
+  const fromAuth = new URLSearchParams(window.location.search).get('from') === 'auth'
+  const homeHref = fromAuth ? '/?from=auth' : '/'
+  const originQuery = fromAuth ? '?from=auth' : ''
 
   useEffect(() => {
     document.title = content.documentTitle
@@ -156,13 +159,13 @@ export default function LegalPage({ page }) {
     <main className="min-h-svh bg-[#f6f5f0] px-5 py-8 text-[#202825] sm:px-8 sm:py-12">
       <div className="mx-auto max-w-[50rem]">
         <header className="flex flex-wrap items-center justify-between gap-4 border-b border-[#d9ded8] pb-5">
-          <a className="flex items-center gap-2.5 text-[#20332e] no-underline" href="/" aria-label="InboxSense home">
+          <a className="flex items-center gap-2.5 text-[#20332e] no-underline" href={homeHref} aria-label="InboxSense home">
             <span className="grid h-9 w-9 place-items-center rounded-[7px] bg-[#176b61] text-[0.68rem] font-extrabold text-white" aria-hidden="true">IS</span>
             <span className="text-[0.96rem] font-semibold">InboxSense</span>
           </a>
           <nav className="flex gap-5 text-[0.8rem] text-[#55716a]" aria-label="Main navigation">
-            <a className="hover:text-[#174f47]" href="/privacy">Privacy</a>
-            <a className="hover:text-[#174f47]" href="/terms">Terms</a>
+            <a className="hover:text-[#174f47]" href={`/privacy${originQuery}`}>Privacy</a>
+            <a className="hover:text-[#174f47]" href={`/terms${originQuery}`}>Terms</a>
           </nav>
         </header>
         <article className="legal-copy py-9 sm:py-12">
@@ -177,7 +180,7 @@ export default function LegalPage({ page }) {
           ))}
         </article>
         <footer className="border-t border-[#d9ded8] py-5 text-[0.75rem] text-[#758179]">
-          <a className="text-[#55716a] hover:text-[#174f47]" href="/">Back to InboxSense</a>
+          <a className="text-[#55716a] hover:text-[#174f47]" href={homeHref}>Back to Inbox</a>
         </footer>
       </div>
     </main>

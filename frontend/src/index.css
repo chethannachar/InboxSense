@@ -93,6 +93,15 @@ body {
   min-height: 100vh;
 }
 
+@media (max-width: 639px) {
+  body:has(.auth-page),
+  #root:has(.auth-page) {
+    height: 100svh;
+    min-height: 0;
+    overflow: hidden;
+  }
+}
+
 #root {
   min-height: 100vh;
 }

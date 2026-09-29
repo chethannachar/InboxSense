@@ -238,7 +238,7 @@ function EmailLoadingVisualization() {
   )
 }
 
-function DashboardApp() {
+function DashboardApp({ forceAuthScreen = false }) {
   if (!API_BASE_URL) {
     throw new Error('VITE_API_URL must be set to the backend API origin')
   }
@@ -622,7 +622,7 @@ function DashboardApp() {
     )
   }
 
-  if (!user) {
+  if (forceAuthScreen || !user) {
     return <AuthScreen onGoogleLogin={handleGoogleLogin} errorMessage={errorMessage} logoutError={logoutError} categories={CATEGORY_FILTERS} categoryLabels={CATEGORY_LABELS} categoryStyles={CATEGORY_STYLES} />
   }
 
@@ -819,7 +819,8 @@ function App() {
     return <LegalPage page={path.slice(1)} />
   }
 
-  return <DashboardApp />
+  const forceAuthScreen = new URLSearchParams(window.location.search).get('from') === 'auth'
+  return <DashboardApp forceAuthScreen={forceAuthScreen} />
 }
 
 export default App
