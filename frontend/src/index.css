@@ -83,6 +83,37 @@
   box-sizing: border-box;
 }
 
+@media (max-width: 767px) {
+  .html-email-content,
+  .html-email-content * {
+    box-sizing: border-box !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+  }
+
+  .html-email-content table {
+    width: 100% !important;
+    table-layout: fixed !important;
+  }
+
+  .html-email-content td,
+  .html-email-content th {
+    width: auto !important;
+    min-width: 0 !important;
+  }
+
+  .html-email-content img,
+  .html-email-content video,
+  .html-email-content svg,
+  .html-email-content iframe,
+  .html-email-content object,
+  .html-email-content embed {
+    max-width: 100% !important;
+    height: auto !important;
+  }
+}
+
 html {
   background: #f7f8f5;
 }
