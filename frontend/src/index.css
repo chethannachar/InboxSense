@@ -112,6 +112,37 @@
     max-width: 100% !important;
     height: auto !important;
   }
+
+  .mobile-reflow-email,
+  .mobile-reflow-email * {
+    writing-mode: horizontal-tb !important;
+    text-orientation: mixed !important;
+    word-break: normal !important;
+    overflow-wrap: anywhere !important;
+    white-space: normal !important;
+  }
+
+  .mobile-reflow-email table,
+  .mobile-reflow-email thead,
+  .mobile-reflow-email tbody,
+  .mobile-reflow-email tfoot,
+  .mobile-reflow-email tr,
+  .mobile-reflow-email td,
+  .mobile-reflow-email th {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .mobile-reflow-email a[role="button"],
+  .mobile-reflow-email a[style*="background"],
+  .mobile-reflow-email button {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+    line-height: 1.25 !important;
+  }
 }
 
 html {

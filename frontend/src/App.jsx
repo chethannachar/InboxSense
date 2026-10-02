@@ -88,9 +88,14 @@ function getEmailBodyText(email) {
   return email.original_body ?? email.body ?? email.full_body ?? email.snippet ?? ''
 }
 
+function needsMobileEmailReflow(email) {
+  return [email.sender_name, email.sender]
+    .some((value) => /naukri|udemy/i.test(String(value || '')))
+}
+
 function EmailBody({ email, className, htmlClassName }) {
   if (email.html_body) {
-    return <div className={`${htmlClassName || className} html-email-content font-[Arial,sans-serif] text-[13px] leading-normal whitespace-normal text-[#222] [overflow-wrap:normal] ${MOBILE_EMAIL_HTML_CLASSES}`} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.html_body) }} />
+    return <div className={`${htmlClassName || className} html-email-content ${needsMobileEmailReflow(email) ? 'mobile-reflow-email' : ''} font-[Arial,sans-serif] text-[13px] leading-normal whitespace-normal text-[#222] [overflow-wrap:normal] ${MOBILE_EMAIL_HTML_CLASSES}`} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.html_body) }} />
   }
   return <div className={`${className} whitespace-pre-wrap`}>{email.original_body ?? email.body ?? email.full_body ?? email.snippet ?? ''}</div>
 }
@@ -122,13 +127,27 @@ function CategoryNavigation({ selectedCategory, categoryCounts, onSelect, ariaLa
 }
 
 function EmailCard({ email, onOpen, onReply, selected, expanded }) {
+  const articleRef = useRef(null)
   const analysis = email.analysis || {}
   const category = analysis.category || analysis.primary_category || 'INFORMATION'
   const senderName = email.sender_name || email.sender || 'Unknown sender'
   const senderAddress = email.sender && email.sender.trim().toLowerCase() !== senderName.trim().toLowerCase() ? email.sender : ''
+
+  useEffect(() => {
+    if (!expanded || !articleRef.current) return
+
+    const article = articleRef.current
+    const list = article.closest('.mobile-email-list')
+    if (!list) return
+
+    article.focus({ preventScroll: true })
+    const top = list.scrollTop + article.getBoundingClientRect().top - list.getBoundingClientRect().top
+    list.scrollTo({ top, behavior: 'smooth' })
+  }, [expanded])
+
   return (
-    <article className={`min-w-0 max-w-full cursor-pointer bg-[#faf9f6] px-4 py-[0.7rem] transition-colors hover:bg-[#e1efe9] active:bg-[#c8e4da] max-[767px]:px-[0.8rem] max-[767px]:py-[0.85rem] ${selected ? 'bg-[#cfe9df] shadow-[inset_3px_0_#0f806f]' : ''} ${expanded ? 'bg-[#e1efe9]' : ''}`}>
-      <div className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-[0.7rem] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#176b61] max-[767px]:grid-cols-[2.15rem_minmax(0,1fr)_auto] max-[767px]:gap-[0.65rem]" role="button" tabIndex="0" onClick={() => onOpen(email)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(email) } }}>
+    <article ref={articleRef} tabIndex={expanded ? -1 : undefined} className={`min-w-0 max-w-full cursor-pointer bg-[#faf9f6] px-4 py-[0.7rem] transition-colors hover:bg-[#e1efe9] active:bg-[#c8e4da] max-[767px]:px-[0.8rem] max-[767px]:py-[0.85rem] ${selected ? 'bg-[#cfe9df] shadow-[inset_3px_0_#0f806f]' : ''} ${expanded ? 'bg-[#e1efe9]' : ''}`}>
+      <div className="grid grid-cols-[2rem_minmax(0,1fr)_auto] items-start gap-[0.7rem] focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-[#176b61] max-[767px]:grid-cols-[2.15rem_minmax(0,1fr)_auto] max-[767px]:gap-[0.65rem]" role="button" aria-expanded={expanded} tabIndex="0" onClick={() => onOpen(email)} onKeyDown={(event) => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); onOpen(email) } }}>
         <span className={`grid h-8 w-8 place-items-center rounded-full text-[0.65rem] font-semibold max-[767px]:h-[2.15rem] max-[767px]:w-[2.15rem] ${CATEGORY_STYLES[category]?.badge || CATEGORY_STYLES.INFORMATION.badge}`}>{senderName.charAt(0).toUpperCase()}</span>
         <div className="min-w-0">
           <p className="text-[0.74rem] font-semibold text-[#263a34] max-[767px]:text-[0.78rem]">{senderName}</p>
