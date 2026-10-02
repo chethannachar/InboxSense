@@ -93,9 +93,41 @@ function needsMobileEmailReflow(email) {
     .some((value) => /naukri|udemy/i.test(String(value || '')))
 }
 
-function EmailBody({ email, className, htmlClassName }) {
+function EmailBody({ email, className, htmlClassName, mobile = false }) {
+  const bodyRef = useRef(null)
+  const mobileReflow = Boolean(mobile && email.html_body && needsMobileEmailReflow(email))
+
+  useEffect(() => {
+    const body = bodyRef.current
+    if (!body || !mobileReflow) return
+
+    const images = Array.from(body.querySelectorAll('img'))
+    const replaceBrokenImage = (image) => {
+      const altText = image.alt.trim()
+      if (!altText) {
+        image.remove()
+        return
+      }
+
+      const fallback = document.createElement('span')
+      fallback.className = 'email-image-fallback'
+      fallback.setAttribute('role', 'img')
+      fallback.setAttribute('aria-label', altText)
+      fallback.textContent = altText
+      image.replaceWith(fallback)
+    }
+    const handleImageError = (event) => replaceBrokenImage(event.currentTarget)
+
+    images.forEach((image) => {
+      if (image.complete && image.naturalWidth === 0) replaceBrokenImage(image)
+      else image.addEventListener('error', handleImageError)
+    })
+
+    return () => images.forEach((image) => image.removeEventListener('error', handleImageError))
+  }, [email.html_body, mobileReflow])
+
   if (email.html_body) {
-    return <div className={`${htmlClassName || className} html-email-content ${needsMobileEmailReflow(email) ? 'mobile-reflow-email' : ''} font-[Arial,sans-serif] text-[13px] leading-normal whitespace-normal text-[#222] [overflow-wrap:normal] ${MOBILE_EMAIL_HTML_CLASSES}`} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.html_body) }} />
+    return <div ref={bodyRef} className={`${htmlClassName || className} html-email-content ${mobileReflow ? 'mobile-reflow-email' : ''} font-[Arial,sans-serif] text-[13px] leading-normal whitespace-normal text-[#222] [overflow-wrap:normal] ${MOBILE_EMAIL_HTML_CLASSES}`} dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(email.html_body) }} />
   }
   return <div className={`${className} whitespace-pre-wrap`}>{email.original_body ?? email.body ?? email.full_body ?? email.snippet ?? ''}</div>
 }
@@ -162,7 +194,7 @@ function EmailCard({ email, onOpen, onReply, selected, expanded }) {
         <div className="hidden w-full min-w-0 max-w-full px-[0.15rem] pt-[0.65rem] pb-[0.2rem] max-[767px]:block inline-email-body">
           {senderAddress && <div className="grid gap-1 text-[0.72rem] text-[#354b43]"><span className="break-all text-[0.66rem] text-[#65776f]">{senderAddress}</span></div>}
           {analysis.reason && <div className="mt-3 rounded-r-md border-l-[3px] border-[#0f806f] bg-[#dceee9] px-[0.65rem] py-[0.6rem] text-[#176b61]"><strong className="text-[0.68rem]">◎ &nbsp;Why this matters</strong><p className="mt-1 text-[0.68rem] leading-[1.45] text-[#50675e]">{analysis.reason}</p></div>}
-          <EmailBody email={email} className="mt-[0.85rem] w-full min-w-0 max-w-full break-words text-[0.8rem] leading-[1.55] whitespace-pre-wrap text-[#30423a] [overflow-wrap:anywhere]" htmlClassName="mt-[0.85rem] w-full min-w-0 max-w-full break-words [overflow-wrap:anywhere]" />
+          <EmailBody email={email} mobile={expanded} className="mt-[0.85rem] w-full min-w-0 max-w-full break-words text-[0.8rem] leading-[1.55] whitespace-pre-wrap text-[#30423a] [overflow-wrap:anywhere]" htmlClassName="mt-[0.85rem] w-full min-w-0 max-w-full break-words [overflow-wrap:anywhere]" />
           {email.attachments?.length > 0 && <div className="mt-3 flex flex-wrap gap-[0.4rem]">{email.attachments.map((attachment) => <span className="max-w-full break-words rounded border border-[#c9dad4] bg-[#f8fbf9] px-2 py-[0.42rem] text-[0.65rem] text-[#4c655b]" key={attachment.id || attachment.name}>{attachment.name || attachment.filename}</span>)}</div>}
           <div className="mt-4 flex flex-wrap items-center gap-3"><button type="button" className="min-h-[2.4rem] rounded-md bg-[#176b61] px-3 py-[0.55rem] text-[0.76rem] text-white transition-colors hover:bg-[#0f806f] active:bg-[#0b574f] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#176b61]" onClick={(event) => { event.stopPropagation(); onReply(email) }}>↩ &nbsp; Reply</button><a className="rounded px-1.5 py-1 text-[0.68rem] text-[#176b61] no-underline hover:bg-[#d6ebe4] hover:text-[#174f47] active:bg-[#b9ddcf] focus-visible:outline-2 focus-visible:outline-[#176b61]" href={email.gmail_url || '#'} target="_blank" rel="noreferrer" onClick={(event) => event.stopPropagation()}>Open in Gmail ↗</a></div>
         </div>

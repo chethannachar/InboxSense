@@ -136,12 +136,38 @@
 
   .mobile-reflow-email a[role="button"],
   .mobile-reflow-email a[style*="background"],
+  .mobile-reflow-email td[bgcolor] a,
+  .mobile-reflow-email td[style*="background"] a,
   .mobile-reflow-email button {
     display: flex !important;
     align-items: center !important;
     justify-content: center !important;
     text-align: center !important;
     line-height: 1.25 !important;
+  }
+
+  .mobile-reflow-email td[bgcolor] a,
+  .mobile-reflow-email td[style*="background"] a {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 2.5rem !important;
+  }
+
+  .mobile-reflow-email td[bgcolor]:has(a),
+  .mobile-reflow-email td[style*="background"]:has(a) {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    text-align: center !important;
+  }
+
+  .mobile-reflow-email .email-image-fallback {
+    display: inline-block !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: 100% !important;
+    overflow-wrap: anywhere !important;
+    vertical-align: middle !important;
   }
 }
 
